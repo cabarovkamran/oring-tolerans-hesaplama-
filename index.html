@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<title>O-Ring Calculator</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; background:#f8f9fa; }
+  h2 { color:#333; margin-bottom:6px; }
+  fieldset { border:1px solid #ccc; padding:12px; margin:12px 0; background:#fff; }
+  legend { font-weight:600; color:#444; }
+  label { display:block; margin:8px 0 4px; }
+  input { padding:6px; width:140px; }
+  select { padding:6px; }
+  .row { display:flex; gap:16px; flex-wrap:wrap; }
+  .actions { display:flex; gap:8px; flex-wrap:wrap; margin: 8px 0; }
+  button { padding:8px 16px; background:#007bff; color:#fff; border:0; border-radius:6px; cursor:pointer; }
+  button:hover { background:#0056b3; }
+  #result { margin-top: 12px; padding:12px; background:#fff; border:1px solid #ccc; border-radius:6px; }
+  table { border-collapse: collapse; width:100%; margin-top:10px; }
+  th, td { border:1px solid #ddd; padding:8px; text-align:right; }
+  th { background:#f1f3f5; }
+  .left { text-align:left; }
+  .ok { color:#0a7a0a; } .warn { color:#b58900; } .bad { color:#b00020; }
+  small { color:#666; }
+  .toolbar{display:flex; gap:24px; align-items:center; flex-wrap:wrap; margin:8px 0 12px;}
+  .radio-group{display:flex; align-items:center; gap:12px;}
+  .radio{display:flex; align-items:center; gap:6px;}
+  .radio input[type="radio"]{accent-color:#0d6efd; width:16px; height:16px; cursor:pointer;}
+  /* bilgi balonu */
+  .inf{cursor:help;display:inline-block;margin-left:6px;border-radius:50%;width:16px;height:16px;
+       text-align:center;line-height:16px;background:#e9ecef;color:#333;font-weight:700;position:relative;}
+  .inf:hover::after{content:attr(data-tip);position:absolute;left:20px;top:-6px;white-space:pre-wrap;
+       background:#333;color:#fff;padding:8px;border-radius:6px;min-width:260px;max-width:360px;z-index:10;font-size:12px;}
+</style>
+</head>
+<body>
+  <h2>O-Ring Hesaplama</h2>
+
+  <div class="toolbar">
+    <!-- mm / in radyo -->
+    <div class="radio-group">
+      <label>Birim:</label>
+      <label class="radio"><input type="radio" name="unit" id="unit-in" value="inch" onchange="onUnitChange()"><span>in</span></label>
+      <label class="radio"><input type="radio" name="unit" id="unit-mm" value="mm" checked onchange="onUnitChange()"><span>mm</span></label>
+    </div>
+
+    <div>
+      <label>Gland Tipi (ön ayar):</label>
+      <select id="gland" onchange="applyPreset()">
+        <option value="static-axial" selected>Static - Axial (face)</option>
+        <option value="static-radial-internal">Static - Radial (internal)</option>
+        <option value="static-radial-external">Static - Radial (external)</option>
+        <option value="dynamic-piston">Dynamic - Piston</option>
+        <option value="dynamic-rod">Dynamic - Rod</option>
+      </select>
+      <small>Hedef aralıklar otomatik güncellenir.</small>
+    </div>
+  </div>
+
+  <fieldset>
+    <legend>Girdiler (Nominal)</legend>
+    <div class="row">
+      <div><label>O-Ring CS (<span class="u">mm</span>):</label><input type="number" id="cs" step="0.01" placeholder="örn. 2.62"></div>
+      <div><label>Groove H (<span class="u">mm</span>):</label><input type="number" id="grooveH" step="0.01" placeholder="örn. 2.00"></div>
+      <div><label>O-Ring ID (<span class="u">mm</span>):</label><input type="number" id="oringID" step="0.01" placeholder="örn. 18.72"></div>
+      <div><label>Groove ID (<span class="u">mm</span>):</label><input type="number" id="grooveID" step="0.01" placeholder="örn. 19.30"></div>
+      <div><label>Groove OD (<span class="u">mm</span>):</label><input type="number" id="grooveOD" step="0.01" placeholder="örn. 23.30"></div>
+      <div><label>Groove W (<span class="u">mm</span>):</label><input type="number" id="grooveW" step="0.01" placeholder="örn. 3.30"></div>
+    </div>
+    <small>Tolerans kutularını boş bırakırsan 0 kabul edilir.</small>
+  </fieldset>
+
+  <fieldset>
+    <legend>Toleranslar (Tol Min / Tol Max)</legend>
+    <div class="row">
+      <div><label>CS Tol (<span class="u">mm</span>) (min / max):</label>
+        <input type="number" id="csTolMin" step="0.01" placeholder="örn. -0.08">
+        <input type="number" id="csTolMax" step="0.01" placeholder="örn. 0.08"></div>
+      <div><label>O-Ring ID Tol (<span class="u">mm</span>) (min / max):</label>
+        <input type="number" id="oIDTolMin" step="0.01" placeholder="örn. -0.23">
+        <input type="number" id="oIDTolMax" step="0.01" placeholder="örn. 0.23"></div>
+      <div><label>Groove H Tol (<span class="u">mm</span>) (min / max):</label>
+        <input type="number" id="gHTolMin" step="0.001" placeholder="örn. 0.00">
+        <input type="number" id="gHTolMax" step="0.001" placeholder="örn. 0.081"></div>
+      <div><label>Groove W Tol (<span class="u">mm</span>) (min / max):</label>
+        <input type="number" id="gWTolMin" step="0.01" placeholder="örn. -0.10">
+        <input type="number" id="gWTolMax" step="0.01" placeholder="örn. 0.10"></div>
+      <div><label>Groove ID Tol (<span class="u">mm</span>) (min / max):</label>
+        <input type="number" id="gIDTolMin" step="0.01" placeholder="örn. -0.10">
+        <input type="number" id="gIDTolMax" step="0.01" placeholder="örn. 0.00"></div>
+      <div><label>Groove OD Tol (<span class="u">mm</span>) (min / max):</label>
+        <input type="number" id="gODTolMin" step="0.01" placeholder="örn. 0.00">
+        <input type="number" id="gODTolMax" step="0.01" placeholder="örn. 0.062"></div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Hedef Aralıklar (%)</legend>
+    <div class="row">
+      <div><label>CR Alt / Üst:</label><input type="number" id="crLo" step="0.1" value="20"><input type="number" id="crHi" step="0.1" value="30"></div>
+      <div><label>SR Alt / Üst:</label><input type="number" id="srLo" step="0.1" value="1"><input type="number" id="srHi" step="0.1" value="5"></div>
+      <div><label>Confinement (Alan) Alt / Üst:</label><input type="number" id="cfLo" step="0.1" value="85"><input type="number" id="cfHi" step="0.1" value="95"></div>
+      <div><label>Confinement (Hacim) Alt / Üst:</label><input type="number" id="cfVLo" step="0.1" value="85"><input type="number" id="cfVHi" step="0.1" value="95"></div>
+    </div>
+  </fieldset>
+
+  <div class="actions">
+    <button id="btnCalc" onclick="calculate()">Hesapla</button>
+    <button onclick="clearAll()">Temizle</button>
+    <button onclick="downloadCSV()">CSV indir</button>
+    <button onclick="window.print()">Yazdır / PDF</button>
+  </div>
+
+  <div id="result"><small>Değerleri girip “Hesapla”ya bas.</small></div>
+
+<script>
+  /* ================== Birimler ================== */
+  let unit = "mm"; // current display unit
+  const MM_PER = (u) => u === "inch" ? 25.4 : 1;
+  function updateUnitLabels(){ document.querySelectorAll(".u").forEach(s=>s.textContent=unit); }
+  function selectedUnit(){ return document.querySelector('input[name="unit"]:checked').value; }
+  function onUnitChange(){
+    const newUnit = selectedUnit();
+    if (newUnit === unit) return;
+    const from = MM_PER(unit), to = MM_PER(newUnit);
+    const ids = ["cs","grooveH","oringID","grooveID","grooveOD","grooveW",
+                 "csTolMin","csTolMax","oIDTolMin","oIDTolMax","gHTolMin","gHTolMax",
+                 "gWTolMin","gWTolMax","gIDTolMin","gIDTolMax","gODTolMin","gODTolMax"];
+    ids.forEach(id=>{
+      const el = document.getElementById(id);
+      if (el.value === "") return;
+      const v = parseFloat(el.value);
+      if (!isNaN(v)) {
+        const mm = v * from;
+        const nv = mm / to;
+        el.value = +nv.toFixed( (newUnit==="inch")?4:2 );
+      }
+    });
+    unit = newUnit;
+    updateUnitLabels();
+  }
+
+  /* ================== Okuyucular & yardımcılar ================== */
+  function lenMM(id){ const s=document.getElementById(id).value; const v=parseFloat(s); return isNaN(v)?NaN:v*MM_PER(unit); }
+  function tolMM(id){ const s=document.getElementById(id).value; const v=parseFloat(s); return (isNaN(v)?0:v)*MM_PER(unit); }
+  function num(id, def=0){ const v=parseFloat(document.getElementById(id).value); return isNaN(v)?def:v; }
+  function dLen(mm){ return mm / MM_PER(unit); }
+  function dArea(mm2){ const f=MM_PER(unit); return mm2/(f*f); }
+  function dVol(mm3){ const f=MM_PER(unit); return mm3/(f*f*f); }
+  function fmt(v,d=2){ return Number.isFinite(v)?v.toFixed(d):"—"; }
+  function klass(v,lo,hi){ if(!Number.isFinite(v)) return ""; return (v<lo||v>hi)?"bad":(v<lo+1||v>hi-1)?"warn":"ok"; }
+
+  /* ================== Geometri ================== */
+  function oRingVolume(cs_mm, id_mm){ return (Math.PI*Math.PI/4)*(id_mm+cs_mm)*cs_mm*cs_mm; }
+  function grooveVolume(gID_mm, gOD_mm, gW_mm, gH_mm){ const Dmean=(gOD_mm+gID_mm)/2; return (Math.PI*Dmean)*(gW_mm*gH_mm); }
+
+  /* ================== Presets ================== */
+  const PRESETS = {
+    "static-axial": {cr:[20,30], sr:[1,5], cf:[85,95], cfV:[85,95]},
+    "static-radial-internal": {cr:[18,30], sr:[1,5], cf:[85,95], cfV:[85,95]},
+    "static-radial-external": {cr:[18,30], sr:[1,5], cf:[85,95], cfV:[85,95]},
+    "dynamic-piston": {cr:[10,20], sr:[0,3], cf:[80,90], cfV:[80,90]},
+    "dynamic-rod": {cr:[10,20], sr:[0,3], cf:[80,90], cfV:[80,90]}
+  };
+  function applyPreset(){
+    const p = PRESETS[document.getElementById("gland").value];
+    if (!p) return;
+    document.getElementById("crLo").value=p.cr[0]; document.getElementById("crHi").value=p.cr[1];
+    document.getElementById("srLo").value=p.sr[0]; document.getElementById("srHi").value=p.sr[1];
+    document.getElementById("cfLo").value=p.cf[0]; document.getElementById("cfHi").value=p.cf[1];
+    document.getElementById("cfVLo").value=p.cfV[0]; document.getElementById("cfVHi").value=p.cfV[1];
+  }
+
+  /* ================== Hesap ================== */
+  let lastSummary=null;
+  function calculate(){
+    const cs=lenMM("cs"), gH=lenMM("grooveH"), oID=lenMM("oringID");
+    const gID=lenMM("grooveID"), gOD=lenMM("grooveOD"), gW=lenMM("grooveW");
+
+    const csTolMin=tolMM("csTolMin"), csTolMax=tolMM("csTolMax");
+    const oIDTolMin=tolMM("oIDTolMin"), oIDTolMax=tolMM("oIDTolMax");
+    const gHTolMin=tolMM("gHTolMin"), gHTolMax=tolMM("gHTolMax");
+    const gWTolMin=tolMM("gWTolMin"), gWTolMax=tolMM("gWTolMax");
+    const gIDTolMin=tolMM("gIDTolMin"), gIDTolMax=tolMM("gIDTolMax");
+    const gODTolMin=tolMM("gODTolMin"), gODTolMax=tolMM("gODTolMax");
+
+    const crLo=num("crLo",20), crHi=num("crHi",30);
+    const srLo=num("srLo",1),  srHi=num("srHi",5);
+    const cfLo=num("cfLo",85), cfHi=num("cfHi",95);
+    const cfVLo=num("cfVLo",85), cfVHi=num("cfVHi",95);
+
+    const CR=(Number.isFinite(cs)&&Number.isFinite(gH))?((cs-gH)/cs)*100:NaN;
+    const SR=(Number.isFinite(gID)&&Number.isFinite(oID))?((gID-oID)/oID)*100:NaN;
+    const OD_nom=(Number.isFinite(oID)&&Number.isFinite(cs))?(oID+2*cs):NaN;
+
+    const cs_min=Number.isFinite(cs)?Math.max(cs+csTolMin,1e-6):NaN;
+    const cs_max=Number.isFinite(cs)?Math.max(cs+csTolMax,1e-6):NaN;
+    const gH_min=Number.isFinite(gH)?Math.max(gH+gHTolMin,1e-6):NaN;
+    const gH_max=Number.isFinite(gH)?Math.max(gH+gHTolMax,1e-6):NaN;
+    const gW_min=Number.isFinite(gW)?Math.max(gW+gWTolMin,1e-6):NaN;
+    const gW_max=Number.isFinite(gW)?Math.max(gW+gWTolMax,1e-6):NaN;
+    const oID_min=Number.isFinite(oID)?Math.max(oID+oIDTolMin,1e-6):NaN;
+    const oID_max=Number.isFinite(oID)?Math.max(oID+oIDTolMax,1e-6):NaN;
+    const gID_min=Number.isFinite(gID)?Math.max(gID+gIDTolMin,1e-6):NaN;
+    const gID_max=Number.isFinite(gID)?Math.max(gID+gIDTolMax,1e-6):NaN;
+    const gOD_min=Number.isFinite(gOD)?Math.max(gOD+gODTolMin,1e-6):NaN;
+    const gOD_max=Number.isFinite(gOD)?Math.max(gOD+gODTolMax,1e-6):NaN;
+
+    const CR_min=(Number.isFinite(cs_min)&&Number.isFinite(gH_max))?((cs_min-gH_max)/cs_min)*100:NaN;
+    const CR_max=(Number.isFinite(cs_max)&&Number.isFinite(gH_min))?((cs_max-gH_min)/cs_max)*100:NaN;
+    const SR_min=(Number.isFinite(gID_min)&&Number.isFinite(oID_max))?((gID_min-oID_max)/oID_max)*100:NaN;
+    const SR_max=(Number.isFinite(gID_max)&&Number.isFinite(oID_min))?((gID_max-oID_min)/oID_min)*100:NaN;
+    const OD_min=(Number.isFinite(oID_min)&&Number.isFinite(cs_min))?(oID_min+2*cs_min):NaN;
+    const OD_max=(Number.isFinite(oID_max)&&Number.isFinite(cs_max))?(oID_max+2*cs_max):NaN;
+
+    const A_or_nom=Number.isFinite(cs)?Math.PI*cs*cs/4:NaN;
+    const A_g_nom=(Number.isFinite(gW)&&Number.isFinite(gH))?gW*gH:NaN;
+    const A_or_min=Number.isFinite(cs_min)?Math.PI*cs_min*cs_min/4:NaN;
+    const A_or_max=Number.isFinite(cs_max)?Math.PI*cs_max*cs_max/4:NaN;
+    const A_g_min=(Number.isFinite(gW_min)&&Number.isFinite(gH_min))?gW_min*gH_min:NaN;
+    const A_g_max=(Number.isFinite(gW_max)&&Number.isFinite(gH_max))?gW_max*gH_max:NaN;
+
+    const Conf_nom=(Number.isFinite(A_or_nom)&&Number.isFinite(A_g_nom))?(A_or_nom/A_g_nom)*100:NaN;
+    const Conf_min=(Number.isFinite(A_or_min)&&Number.isFinite(A_g_max))?(A_or_min/A_g_max)*100:NaN;
+    const Conf_max=(Number.isFinite(A_or_max)&&Number.isFinite(A_g_min))?(A_or_max/A_g_min)*100:NaN;
+
+    const V_or_nom=(Number.isFinite(cs)&&Number.isFinite(oID))?oRingVolume(cs,oID):NaN;
+    const V_or_min=(Number.isFinite(cs_min)&&Number.isFinite(oID_min))?oRingVolume(cs_min,oID_min):NaN;
+    const V_or_max=(Number.isFinite(cs_max)&&Number.isFinite(oID_max))?oRingVolume(cs_max,oID_max):NaN;
+
+    const V_g_nom=(Number.isFinite(gID)&&Number.isFinite(gOD)&&Number.isFinite(gW)&&Number.isFinite(gH))?grooveVolume(gID,gOD,gW,gH):NaN;
+    const V_g_min=(Number.isFinite(gID_min)&&Number.isFinite(gOD_min)&&Number.isFinite(gW_min)&&Number.isFinite(gH_min))?grooveVolume(gID_min,gOD_min,gW_min,gH_min):NaN;
+    const V_g_max=(Number.isFinite(gID_max)&&Number.isFinite(gOD_max)&&Number.isFinite(gW_max)&&Number.isFinite(gH_max))?grooveVolume(gID_max,gOD_max,gW_max,gH_max):NaN;
+
+    const ConfV_nom=(Number.isFinite(V_or_nom)&&Number.isFinite(V_g_nom))?(V_or_nom/V_g_nom)*100:NaN;
+    const ConfV_min=(Number.isFinite(V_or_min)&&Number.isFinite(V_g_max))?(V_or_min/V_g_max)*100:NaN;
+    const ConfV_max=(Number.isFinite(V_or_max)&&Number.isFinite(V_g_min))?(V_or_max/V_g_min)*100:NaN;
+
+    const crC=klass(CR,crLo,crHi), srC=klass(SR,srLo,srHi), cfC=klass(Conf_nom,cfLo,cfHi), cfVC=klass(ConfV_nom,cfVLo,cfVHi);
+
+    // formül açıklamaları
+    const tipCR="Compression Ratio = (CS − Groove H) / CS × 100";
+    const tipSR="Stretch Ratio = (Groove ID − O-Ring ID) / O-Ring ID × 100";
+    const tipCA="Confinement (Alan) = A_or / A_g × 100\nA_or = π·CS²/4\nA_g = W·H";
+    const tipCV="Confinement (Hacim) = V_or / V_g × 100\nV_or = (π²/4)·(ID+CS)·CS²\nV_g = π·D_mean·(W·H),  D_mean=(OD+ID)/2";
+
+    const u=unit, a2=(unit==="inch"?"in²":"mm²"), a3=(unit==="inch"?"in³":"mm³");
+    const html = `
+      <div><b>Compression Ratio</b> <span class="inf" data-tip="${tipCR}">ℹ︎</span>: <span class="${crC}">${fmt(CR)}</span> %</div>
+      <div><b>Stretch Ratio</b> <span class="inf" data-tip="${tipSR}">ℹ︎</span>: <span class="${srC}">${fmt(SR)}</span> %</div>
+
+      <table>
+        <tr><th class="left">Final O-Ring Dimensions</th><th>Nominal (${u})</th><th>Minimum (${u})</th><th>Maximum (${u})</th></tr>
+        <tr><td class="left">O-Ring OD</td><td>${fmt(dLen(OD_nom))}</td><td>${fmt(dLen(OD_min))}</td><td>${fmt(dLen(OD_max))}</td></tr>
+      </table>
+
+      <table>
+        <tr><th class="left">Compression Ratio (CR %)</th><th>Nominal</th><th>Minimum</th><th>Maximum</th></tr>
+        <tr><td class="left">CR</td><td>${fmt(CR)}</td><td>${fmt(CR_min)}</td><td>${fmt(CR_max)}</td></tr>
+      </table>
+
+      <table>
+        <tr><th class="left">Stretch Ratio (SR %)</th><th>Nominal</th><th>Minimum</th><th>Maximum</th></tr>
+        <tr><td class="left">SR</td><td>${fmt(SR)}</td><td>${fmt(SR_min)}</td><td>${fmt(SR_max)}</td></tr>
+      </table>
+
+      <table>
+        <tr>
+          <th class="left">Kesit Alanı &amp; Confinement <span class="inf" data-tip="${tipCA}">ℹ︎</span></th>
+          <th>Nominal (${a2})</th><th>Minimum (${a2})</th><th>Maximum (${a2})</th>
+        </tr>
+        <tr><td class="left">O-Ring CS Area</td><td>${fmt(dArea(A_or_nom),3)}</td><td>${fmt(dArea(A_or_min),3)}</td><td>${fmt(dArea(A_or_max),3)}</td></tr>
+        <tr><td class="left">Groove CS Area</td><td>${fmt(dArea(A_g_nom),3)}</td><td>${fmt(dArea(A_g_min),3)}</td><td>${fmt(dArea(A_g_max),3)}</td></tr>
+        <tr><td class="left"><b>Confinement Ratio (%)</b></td>
+            <td class="${cfC}"><b>${fmt(Conf_nom)}</b></td>
+            <td>${fmt(Conf_min)}</td>
+            <td>${fmt(Conf_max)}</td></tr>
+      </table>
+
+      <table>
+        <tr>
+          <th class="left">Hacim <span class="inf" data-tip="${tipCV}">ℹ︎</span></th>
+          <th>Nominal (${a3})</th><th>Minimum (${a3})</th><th>Maximum (${a3})</th>
+        </tr>
+        <tr><td class="left">O-Ring Volume</td><td>${fmt(dVol(V_or_nom),3)}</td><td>${fmt(dVol(V_or_min),3)}</td><td>${fmt(dVol(V_or_max),3)}</td></tr>
+        <tr><td class="left">Groove Volume</td><td>${fmt(dVol(V_g_nom),3)}</td><td>${fmt(dVol(V_g_min),3)}</td><td>${fmt(dVol(V_g_max),3)}</td></tr>
+        <tr><td class="left"><b>Confinement Ratio (Volume) %</b></td>
+            <td class="${cfVC}"><b>${fmt(ConfV_nom)}</b></td>
+            <td>${fmt(ConfV_min)}</td>
+            <td>${fmt(ConfV_max)}</td></tr>
+      </table>
+    `;
+    document.getElementById("result").innerHTML = html;
+
+    lastSummary = {
+      unit: unit,
+      CR, CR_min, CR_max, SR, SR_min, SR_max,
+      OD_nom: dLen(OD_nom), OD_min: dLen(OD_min), OD_max: dLen(OD_max),
+      A_or_nom: dArea(A_or_nom), A_or_min: dArea(A_or_min), A_or_max: dArea(A_or_max),
+      A_g_nom: dArea(A_g_nom), A_g_min: dArea(A_g_min), A_g_max: dArea(A_g_max),
+      Conf_nom, Conf_min, Conf_max,
+      V_or_nom: dVol(V_or_nom), V_or_min: dVol(V_or_min), V_or_max: dVol(V_or_max),
+      V_g_nom: dVol(V_g_nom), V_g_min: dVol(V_g_min), V_g_max: dVol(V_g_max),
+      ConfV_nom, ConfV_min, ConfV_max
+    };
+  }
+
+  function clearAll(){
+    document.querySelectorAll('input[type="number"]').forEach(el=>{
+      if (["crLo","crHi","srLo","srHi","cfLo","cfHi","cfVLo","cfVHi"].includes(el.id)) return;
+      el.value = "";
+    });
+    document.getElementById("result").innerHTML = "<small>Değerleri girip “Hesapla”ya bas.</small>";
+    lastSummary = null;
+  }
+
+  function downloadCSV(){
+    if (!lastSummary) { alert("Önce Hesapla'ya bas."); return; }
+    const s=lastSummary;
+    const rows=[
+      ["Unit", s.unit],
+      ["Metric","Nominal","Minimum","Maximum"],
+      ["CR (%)", fmt(s.CR), fmt(s.CR_min), fmt(s.CR_max)],
+      ["SR (%)", fmt(s.SR), fmt(s.SR_min), fmt(s.SR_max)],
+      [`O-Ring OD (${s.unit})`, fmt(s.OD_nom,3), fmt(s.OD_min,3), fmt(s.OD_max,3)],
+      [`O-Ring Area (${s.unit}^2)`, fmt(s.A_or_nom,3), fmt(s.A_or_min,3), fmt(s.A_or_max,3)],
+      [`Groove Area (${s.unit}^2)`, fmt(s.A_g_nom,3), fmt(s.A_g_min,3), fmt(s.A_g_max,3)],
+      ["Conf (Area) (%)", fmt(s.Conf_nom), fmt(s.Conf_min), fmt(s.Conf_max)],
+      [`O-Ring Volume (${s.unit}^3)`, fmt(s.V_or_nom,3), fmt(s.V_or_min,3), fmt(s.V_or_max,3)],
+      [`Groove Volume (${s.unit}^3)`, fmt(s.V_g_nom,3), fmt(s.V_g_min,3), fmt(s.V_g_max,3)],
+      ["Conf (Volume) (%)", fmt(s.ConfV_nom), fmt(s.ConfV_min), fmt(s.ConfV_max)]
+    ];
+    const csv=rows.map(r=>r.join(",")).join("\n");
+    const blob=new Blob([csv], {type:"text/csv;charset=utf-8;"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a"); a.href=url; a.download="o-ring-results.csv"; a.click(); URL.revokeObjectURL(url);
+  }
+
+  /* ================== Enter kısayolları ================== */
+  function setupEnterTabbing() {
+    const inputs = Array.from(document.querySelectorAll('input[type="number"], select'));
+    inputs.forEach((el, idx) => {
+      el.setAttribute('enterkeyhint', 'next');
+      el.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+
+        // Ctrl+Enter -> Hesapla
+        if (e.ctrlKey) {
+          e.preventDefault();
+          document.getElementById('btnCalc')?.click();
+          return;
+        }
+
+        e.preventDefault();
+        // Shift+Enter: geri, normal Enter: ileri
+        let j = idx + (e.shiftKey ? -1 : 1);
+
+        // sınırları dola
+        if (j < 0) j = inputs.length - 1;
+        if (j >= inputs.length) {
+          document.getElementById('btnCalc')?.focus();
+          return;
+        }
+
+        // gizli/disabled ise atla
+        while (j >= 0 && j < inputs.length &&
+               (inputs[j].disabled || inputs[j].offsetParent === null)) {
+          j += (e.shiftKey ? -1 : 1);
+        }
+        if (j >= 0 && j < inputs.length) inputs[j].focus();
+        else document.getElementById('btnCalc')?.focus();
+      });
+    });
+  }
+
+  /* ================== init ================== */
+  updateUnitLabels();
+  applyPreset();
+  setupEnterTabbing();
+</script>
+</body>
+</html>
+
+
+
+
+
+
